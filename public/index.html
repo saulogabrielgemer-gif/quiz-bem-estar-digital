@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#17152f">
+  <title>Quiz — Bem-estar Digital</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#f7f7ff;background:#121126}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#292354,#121126 55%);padding:20px}
+    .wrap{max-width:900px;margin:auto}.brand{font-weight:800;letter-spacing:.08em;color:#c9c2ff;font-size:.8rem}
+    h1{font-size:clamp(2rem,6vw,3.4rem);line-height:1.05;margin:.6rem 0}h2{margin:.2rem 0 1rem}
+    p{line-height:1.5;color:#d9d7ef}.card{background:#201d3d;border:1px solid #454069;border-radius:20px;padding:clamp(18px,4vw,30px);margin-top:18px;box-shadow:0 12px 40px #0002}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+    label{display:block;font-size:.9rem;color:#d9d7ef;margin:12px 0 6px}
+    input,select{width:100%;padding:13px 14px;border-radius:12px;border:1px solid #5b5684;background:#14122b;color:white;font:inherit}
+    button{border:0;border-radius:12px;padding:13px 16px;font:inherit;font-weight:750;cursor:pointer;background:#a99cff;color:#191433}
+    button:hover{filter:brightness(1.07)}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#3c375f;color:white}.option{width:100%;text-align:left;background:#302b55;color:white;border:1px solid #575080;margin:6px 0}
+    .option:hover{background:#443c75}.muted{color:#b9b5d9;font-size:.92rem}.hidden{display:none!important}.pill{display:inline-block;border-radius:999px;background:#3a345e;padding:6px 10px;font-size:.82rem}
+    .code{font-size:clamp(2rem,8vw,3.5rem);font-weight:900;letter-spacing:.16em;color:#fff}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
+    .player{background:#302b55;padding:10px 12px;border-radius:10px;overflow-wrap:anywhere}.rankrow{display:flex;justify-content:space-between;gap:12px;padding:12px;background:#302b55;border-radius:10px;margin:7px 0}
+    .feedback{padding:12px;border-radius:12px;background:#302b55;margin-top:12px}.bar{height:8px;background:#49436c;border-radius:99px;overflow:hidden;margin:12px 0}.bar>div{height:100%;width:100%;background:#a99cff;transition:width 1s linear}
+    .notice{color:#ffe5a3;min-height:1.4em}.success{color:#b5ffd4}.bad{color:#ffb8c0}footer{margin:25px 0;color:#aaa6ca;font-size:.8rem;text-align:center}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">QUIZ INTERATIVO • EDUCAÇÃO DIGITAL</div>
+  <h1>Bem-estar Digital<br>e Saúde Mental</h1>
+  <p>Entre na sala, responda às perguntas e veja sua posição no ranking.</p>
+
+  <section id="home" class="card">
+    <h2>Como você quer jogar?</h2>
+    <div class="grid">
+      <div>
+        <p>Você vai apresentar o jogo para a turma.</p>
+        <label for="hostName">Seu nome de apresentador</label>
+        <input id="hostName" maxlength="18" placeholder="Ex.: Professor(a)">
+        <label for="duration">Tempo por pergunta</label>
+        <select id="duration"><option value="15">15 segundos</option><option value="20" selected>20 segundos</option><option value="30">30 segundos</option><option value="45">45 segundos</option><option value="60">60 segundos</option></select>
+        <button id="createBtn" style="width:100%;margin-top:14px">Criar sala de apresentador</button>
+      </div>
+      <div>
+        <p>Você vai participar pelo celular.</p>
+        <label for="roomCode">Código da sala</label>
+        <input id="roomCode" maxlength="6" placeholder="Ex.: A2BC3D" autocapitalize="characters">
+        <label for="playerName">Seu apelido</label>
+        <input id="playerName" maxlength="18" placeholder="Ex.: Estrela21">
+        <button id="joinBtn" class="secondary" style="width:100%;margin-top:14px">Entrar na sala</button>
+      </div>
+    </div>
+    <p id="homeNotice" class="notice" role="status"></p>
+  </section>
+
+  <section id="hostLobby" class="card hidden">
+    <span class="pill">Modo apresentador</span>
+    <h2>Sala pronta!</h2>
+    <p>Mostre este código para os participantes. Eles entram pelo endereço do site em seus celulares.</p>
+    <div id="hostCode" class="code">------</div>
+    <p id="hostUrl"></p>
+    <h3>Jogadores conectados: <span id="playerCount">0</span></h3>
+    <div id="lobbyPlayers" class="players"></div>
+    <p id="hostNotice" class="notice"></p>
+    <button id="startBtn" style="width:100%">Iniciar quiz</button>
+    <button id="closeBtn" class="secondary" style="width:100%;margin-top:8px">Encerrar sala</button>
+  </section>
+
+  <section id="playerLobby" class="card hidden">
+    <span class="pill">Modo participante</span>
+    <h2>Você entrou na sala!</h2>
+    <p id="playerWelcome"></p>
+    <p>Espere o apresentador iniciar a partida. Mantenha esta página aberta.</p>
+    <div class="feedback">Jogadores na sala: <strong id="joinedCount">—</strong></div>
+    <div id="waitingPlayers" class="players" style="margin-top:12px"></div>
+    <p id="playerLobbyNotice" class="notice"></p>
+  </section>
+
+  <section id="questionCard" class="card hidden">
+    <div class="grid">
+      <span class="pill" id="questionNumber">Pergunta 1</span>
+      <span class="pill" id="timerLabel">20 segundos</span>
+    </div>
+    <div class="bar"><div id="timerBar"></div></div>
+    <h2 id="questionText"></h2>
+    <div id="answerOptions"></div>
+    <p id="answerNotice" class="notice" role="status"></p>
+    <p id="answerCount" class="muted"></p>
+    <div id="explanation" class="feedback hidden"></div>
+    <div id="hostNextWrap" class="hidden">
+      <button id="nextBtn" style="width:100%;margin-top:12px">Próxima pergunta</button>
+    </div>
+  </section>
+
+  <section id="finishedCard" class="card hidden">
+    <span class="pill">Fim de jogo</span>
+    <h2>🏆 Ranking final</h2>
+    <p>Parabéns a todos por participarem!</p>
+    <div id="finalRanking"></div>
+    <button id="backBtn" class="secondary" style="width:100%;margin-top:14px">Voltar ao início</button>
+  </section>
+  <footer>Quiz educativo • Não é um diagnóstico de saúde mental.</footer>
+</div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+(() => {
+  const socket = io();
+  const $ = id => document.getElementById(id);
+  const sections = ["home","hostLobby","playerLobby","questionCard","finishedCard"];
+  let role = null, roomCode = null, endsAt = null, timerInterval = null, locked = false;
+  let currentQuestion = 0, totalQuestions = 0;
+  const show = id => sections.forEach(s => $(s).classList.toggle("hidden", s !== id));
+  const notice = (id, text, cls="") => { $(id).textContent = text || ""; $(id).className = "notice " + cls; };
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function renderPlayers(players, target) {
+    $(target).innerHTML = "";
+    players.forEach((p, i) => {
+      const div = document.createElement("div");
+      div.className = "player";
+      div.textContent = role === "host" ? `${i+1}. ${p.name} — ${p.score} pts` : p.name;
+      $(target).appendChild(div);
+    });
+  }
+  function renderRanking(players, target) {
+    $(target).innerHTML = "";
+    players.forEach((p, i) => {
+      const row = document.createElement("div");
+      row.className = "rankrow";
+      const name = document.createElement("strong");
+      name.textContent = `${i+1}. ${p.name}`;
+      const score = document.createElement("span");
+      score.textContent = `${p.score} pts`;
+      row.append(name, score);
+      $(target).appendChild(row);
+    });
+    if (!players.length) $(target).textContent = "Nenhum jogador terminou a partida.";
+  }
+  function stopTimer() { if (timerInterval) clearInterval(timerInterval); timerInterval = null; }
+  function startTimer(endTime, duration) {
+    stopTimer(); endsAt = endTime;
+    const tick = () => {
+      const left = Math.max(0, endsAt - Date.now());
+      $("timerLabel").textContent = `${Math.ceil(left/1000)} segundos`;
+      $("timerBar").style.width = `${Math.max(0,left/(duration*1000)*100)}%`;
+      if (left <= 0) stopTimer();
+    };
+    tick(); timerInterval = setInterval(tick, 200);
+  }
+  function showOptions(options) {
+    $("answerOptions").innerHTML = "";
+    options.forEach((option, i) => {
+      const b = document.createElement("button");
+      b.className = "option";
+      b.textContent = `${String.fromCharCode(65+i)}. ${option}`;
+      b.addEventListener("click", () => {
+        if (role !== "player" || locked) return;
+        locked = true;
+        [...$("answerOptions").querySelectorAll("button")].forEach(x => x.disabled = true);
+        socket.emit("player-answer", { answer: i }, result => {
+          if (!result || !result.ok) {
+            notice("answerNotice", result?.error || "Não foi possível enviar a resposta.", "bad");
+            return;
+          }
+          notice("answerNotice", result.correct ? "Resposta enviada! Você acertou." : "Resposta enviada! Continue na próxima.", result.correct ? "success" : "");
+        });
+      });
+      $("answerOptions").appendChild(b);
+    });
+  }
+
+  $("createBtn").addEventListener("click", () => {
+    notice("homeNotice", "");
+    socket.emit("host-create", {
+      name: $("hostName").value,
+      durationSeconds: Number($("duration").value)
+    }, result => {
+      if (!result?.ok) return notice("homeNotice", "Não foi possível criar a sala. Tente novamente.", "bad");
+      role = "host"; roomCode = result.code; show("hostLobby");
+      $("hostCode").textContent = roomCode;
+      $("hostUrl").textContent = "Link para os jogadores: " + location.origin;
+      notice("hostNotice", "Compartilhe o código e espere os jogadores entrarem.");
+    });
+  });
+
+  $("joinBtn").addEventListener("click", () => {
+    notice("homeNotice", "");
+    socket.emit("player-join", {
+      code: $("roomCode").value,
+      name: $("playerName").value
+    }, result => {
+      if (!result?.ok) return notice("homeNotice", result?.error || "Não foi possível entrar.", "bad");
+      role = "player"; roomCode = result.code; show("playerLobby");
+      $("playerWelcome").textContent = `Bem-vindo(a), ${result.name}! Código da sala: ${roomCode}.`;
+      notice("playerLobbyNotice", "Conectado. Aguardando o início.");
+    });
+  });
+
+  $("startBtn").addEventListener("click", () => {
+    socket.emit("host-start", { code: roomCode }, result => {
+      if (!result?.ok) notice("hostNotice", result?.error || "Não foi possível iniciar.", "bad");
+    });
+  });
+  $("nextBtn").addEventListener("click", () => {
+    socket.emit("host-next", { code: roomCode }, result => {
+      if (!result?.ok) notice("answerNotice", result?.error || "Não foi possível avançar.", "bad");
+    });
+  });
+  $("closeBtn").addEventListener("click", () => {
+    if (confirm("Tem certeza de que deseja encerrar a sala?")) socket.emit("host-end", { code: roomCode });
+  });
+  $("backBtn").addEventListener("click", () => location.reload());
+
+  socket.on("lobby-update", data => {
+    if (data.code !== roomCode) return;
+    $("playerCount").textContent = data.players.length;
+    $("joinedCount").textContent = data.players.length;
+    renderPlayers(data.players, "lobbyPlayers");
+    renderPlayers(data.players, "waitingPlayers");
+  });
+  socket.on("answer-count", data => {
+    $("answerCount").textContent = `Respostas recebidas: ${data.answered} de ${data.total}`;
+  });
+  socket.on("question-start", data => {
+    currentQuestion = data.questionIndex; totalQuestions = data.totalQuestions; locked = false;
+    show("questionCard");
+    $("questionNumber").textContent = `Pergunta ${currentQuestion+1} de ${totalQuestions}`;
+    $("questionText").textContent = data.question;
+    $("explanation").classList.add("hidden");
+    $("hostNextWrap").classList.add("hidden");
+    $("answerCount").textContent = "";
+    notice("answerNotice", role === "host" ? "A pergunta está valendo!" : "Escolha uma resposta antes do tempo acabar.");
+    showOptions(data.options);
+    if (role === "host") $("answerOptions").classList.add("hidden");
+    else $("answerOptions").classList.remove("hidden");
+    startTimer(data.endsAt, data.durationSeconds);
+  });
+  socket.on("question-result", data => {
+    stopTimer();
+    $("answerOptions").classList.add("hidden");
+    $("explanation").classList.remove("hidden");
+    $("explanation").textContent = `Resposta correta: ${String.fromCharCode(65+data.correctIndex)}. ${data.explanation}`;
+    renderRanking(data.players, "finalRanking");
+    if (role === "host") {
+      $("hostNextWrap").classList.remove("hidden");
+      $("nextBtn").textContent = currentQuestion+1 >= totalQuestions ? "Ver ranking final" : "Próxima pergunta";
+      $("answerCount").textContent = `Pergunta ${currentQuestion+1} encerrada.`;
+    } else {
+      notice("answerNotice", "Pergunta encerrada. Aguarde a próxima.");
+    }
+  });
+  socket.on("game-finished", data => {
+    stopTimer(); show("finishedCard"); renderRanking(data.players, "finalRanking");
+  });
+  socket.on("room-closed", data => {
+    stopTimer(); alert(data.message || "A sala foi encerrada."); location.reload();
+  });
+  socket.on("connect_error", () => {
+    notice("homeNotice", "Falha de conexão com o servidor. Atualize a página e tente novamente.", "bad");
+  });
+})();
+</script>
+</body>
+</html>
