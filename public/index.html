@@ -20,7 +20,8 @@
     .code{font-size:clamp(2rem,8vw,3.5rem);font-weight:900;letter-spacing:.16em;color:#fff}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
     .player{background:#302b55;padding:10px 12px;border-radius:10px;overflow-wrap:anywhere}.rankrow{display:flex;justify-content:space-between;gap:12px;padding:12px;background:#302b55;border-radius:10px;margin:7px 0}
     .feedback{padding:12px;border-radius:12px;background:#302b55;margin-top:12px}.bar{height:8px;background:#49436c;border-radius:99px;overflow:hidden;margin:12px 0}.bar>div{height:100%;width:100%;background:#a99cff;transition:width 1s linear}
-    .notice{color:#ffe5a3;min-height:1.4em}.success{color:#b5ffd4}.bad{color:#ffb8c0}footer{margin:25px 0;color:#aaa6ca;font-size:.8rem;text-align:center}
+    .notice{color:#ffe5a3;min-height:1.4em}.success{color:#b5ffd4}.bad{color:#ffb8c0}
+    .qr-panel{display:flex;align-items:center;gap:16px;flex-wrap:wrap;background:#17152f;border:1px solid #454069;border-radius:14px;padding:14px;margin:14px 0}.qr-panel #qrcode{background:#fff;padding:8px;border-radius:8px;min-width:148px;min-height:148px;display:flex;align-items:center;justify-content:center}.qr-panel #qrcode img,.qr-panel #qrcode canvas{display:block;max-width:100%;height:auto!important}.qr-info{flex:1;min-width:180px}.qr-link{overflow-wrap:anywhere;font-size:.88rem;color:#c9c2ff}footer{margin:25px 0;color:#aaa6ca;font-size:.8rem;text-align:center}
   </style>
 </head>
 <body>
@@ -58,6 +59,10 @@
     <p>Mostre este código para os participantes. Eles entram pelo endereço do site em seus celulares.</p>
     <div id="hostCode" class="code">------</div>
     <p id="hostUrl"></p>
+    <div class="qr-panel">
+      <div id="qrcode" aria-label="QR Code para entrar na sala"></div>
+      <div class="qr-info"><h3>Entrar pelo QR Code</h3><p>Peça para a turma abrir a câmera do celular e apontar para este código.</p><p id="qrLink" class="qr-link"></p><button id="copyLinkBtn" class="secondary" type="button">Copiar link da sala</button></div>
+    </div>
     <h3>Jogadores conectados: <span id="playerCount">0</span></h3>
     <div id="lobbyPlayers" class="players"></div>
     <p id="hostNotice" class="notice"></p>
@@ -101,6 +106,7 @@
   <footer>Quiz educativo • Não é um diagnóstico de saúde mental.</footer>
 </div>
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" referrerpolicy="no-referrer"></script>
 <script>
 (() => {
   const socket = io();
@@ -108,6 +114,7 @@
   const sections = ["home","hostLobby","playerLobby","questionCard","finishedCard"];
   let role = null, roomCode = null, endsAt = null, timerInterval = null, locked = false;
   let currentQuestion = 0, totalQuestions = 0;
+  let roomJoinUrl = "";
   const show = id => sections.forEach(s => $(s).classList.toggle("hidden", s !== id));
   const notice = (id, text, cls="") => { $(id).textContent = text || ""; $(id).className = "notice " + cls; };
   const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -176,10 +183,36 @@
       if (!result?.ok) return notice("homeNotice", "Não foi possível criar a sala. Tente novamente.", "bad");
       role = "host"; roomCode = result.code; show("hostLobby");
       $("hostCode").textContent = roomCode;
-      $("hostUrl").textContent = "Link para os jogadores: " + location.origin;
-      notice("hostNotice", "Compartilhe o código e espere os jogadores entrarem.");
+      roomJoinUrl = `${location.origin}${location.pathname}?room=${encodeURIComponent(roomCode)}`;
+      $("hostUrl").textContent = "Link para os jogadores: " + roomJoinUrl;
+      $("qrLink").textContent = roomJoinUrl;
+      $("qrcode").innerHTML = "";
+      if (typeof QRCode !== "undefined") {
+        new QRCode($("qrcode"), { text: roomJoinUrl, width: 132, height: 132, colorDark: "#111111", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.M });
+      } else {
+        $("qrcode").textContent = "QR Code indisponível. Use o link abaixo.";
+      }
+      notice("hostNotice", "Compartilhe o QR Code ou o link e espere os jogadores entrarem.");
     });
   });
+
+  $("copyLinkBtn").addEventListener("click", async () => {
+    if (!roomJoinUrl) return;
+    try {
+      await navigator.clipboard.writeText(roomJoinUrl);
+      notice("hostNotice", "Link da sala copiado!");
+    } catch {
+      notice("hostNotice", "Não foi possível copiar automaticamente. Copie o link exibido acima.");
+    }
+  });
+
+  // Quando alguém abre um QR Code, preenche o código automaticamente.
+  const roomFromUrl = new URLSearchParams(location.search).get("room");
+  if (roomFromUrl) {
+    $("roomCode").value = roomFromUrl.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    $("playerName").focus();
+    notice("homeNotice", "Código da sala preenchido pelo QR Code. Digite seu apelido e toque em Entrar na sala.");
+  }
 
   $("joinBtn").addEventListener("click", () => {
     notice("homeNotice", "");
