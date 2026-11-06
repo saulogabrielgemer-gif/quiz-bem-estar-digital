@@ -317,18 +317,6 @@ socket.on("question-result", data => {
     }
   });
 
-    stopTimer();
-    $("answerOptions").classList.add("hidden");
-    $("explanation").classList.remove("hidden");
-    $("explanation").textContent = `Resposta correta: ${String.fromCharCode(65+data.correctIndex)}. ${data.explanation}`;
-    renderRanking(data.players, "finalRanking");
-    if (role === "host") {
-      $("hostNextWrap").classList.remove("hidden");
-      $("nextBtn").textContent = currentQuestion+1 >= totalQuestions ? "Ver ranking final" : "Próxima pergunta";
-      $("answerCount").textContent = `Pergunta ${currentQuestion+1} encerrada.`;
-    } else {
-      notice("answerNotice", "Pergunta encerrada. Aguarde a próxima.");
-    }
   });
   socket.on("game-finished", data => {
     stopTimer(); show("finishedCard"); renderRanking(data.players, "finalRanking");
