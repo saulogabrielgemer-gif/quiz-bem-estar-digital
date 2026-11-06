@@ -17,17 +17,6 @@
     button{border:0;border-radius:12px;padding:13px 16px;font:inherit;font-weight:750;cursor:pointer;background:#a99cff;color:#191433}
     button:hover{filter:brightness(1.07)}button:disabled{opacity:.45;cursor:not-allowed}.secondary{background:#3c375f;color:white}.option{width:100%;text-align:left;background:#302b55;color:white;border:1px solid #575080;margin:6px 0}
     .option:hover{background:#443c75}.muted{color:#b9b5d9;font-size:.92rem}.hidden{display:none!important}.pill{display:inline-block;border-radius:999px;background:#3a345e;padding:6px 10px;font-size:.82rem}
-    .option.correct-answer {
-  background: #176b43;
-  border: 2px solid #57e69a;
-  color: #ffffff;
-}
-
-.option.wrong-answer {
-  background: #792f3b;
-  border: 2px solid #ff8290;
-  color: #ffffff;
-}
     .code{font-size:clamp(2rem,8vw,3.5rem);font-weight:900;letter-spacing:.16em;color:#fff}.players{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px}
     .player{background:#302b55;padding:10px 12px;border-radius:10px;overflow-wrap:anywhere}.rankrow{display:flex;justify-content:space-between;gap:12px;padding:12px;background:#302b55;border-radius:10px;margin:7px 0}
     .feedback{padding:12px;border-radius:12px;background:#302b55;margin-top:12px}.bar{height:8px;background:#49436c;border-radius:99px;overflow:hidden;margin:12px 0}.bar>div{height:100%;width:100%;background:#a99cff;transition:width 1s linear}
@@ -277,46 +266,19 @@
     else $("answerOptions").classList.remove("hidden");
     startTimer(data.endsAt, data.durationSeconds);
   });
-  
-socket.on("question-result", data => {
+  socket.on("question-result", data => {
     stopTimer();
-
-    const optionsBox = $("answerOptions");
-    const buttons = [...optionsBox.querySelectorAll("button")];
-
-    buttons.forEach((button, i) => {
-      button.disabled = true;
-      button.classList.remove("correct-answer", "wrong-answer");
-
-      if (i === data.correctIndex) {
-        button.classList.add("correct-answer");
-        button.textContent = "✅ " + button.textContent + " — CORRETA";
-      } else {
-        button.classList.add("wrong-answer");
-        button.textContent = "❌ " + button.textContent + " — ERRADA";
-      }
-    });
-
-    optionsBox.classList.remove("hidden");
+    $("answerOptions").classList.add("hidden");
     $("explanation").classList.remove("hidden");
-    $("explanation").textContent =
-      `Resposta correta: ${String.fromCharCode(65 + data.correctIndex)}. ${data.explanation}`;
-
+    $("explanation").textContent = `Resposta correta: ${String.fromCharCode(65+data.correctIndex)}. ${data.explanation}`;
     renderRanking(data.players, "finalRanking");
-
     if (role === "host") {
       $("hostNextWrap").classList.remove("hidden");
-      $("nextBtn").textContent =
-        currentQuestion + 1 >= totalQuestions
-          ? "Ver ranking final"
-          : "Próxima pergunta";
-      $("answerCount").textContent =
-        `Pergunta ${currentQuestion + 1} encerrada.`;
+      $("nextBtn").textContent = currentQuestion+1 >= totalQuestions ? "Ver ranking final" : "Próxima pergunta";
+      $("answerCount").textContent = `Pergunta ${currentQuestion+1} encerrada.`;
     } else {
-      notice("answerNotice", "Pergunta encerrada. Confira as respostas!");
+      notice("answerNotice", "Pergunta encerrada. Aguarde a próxima.");
     }
-  });
-
   });
   socket.on("game-finished", data => {
     stopTimer(); show("finishedCard"); renderRanking(data.players, "finalRanking");
